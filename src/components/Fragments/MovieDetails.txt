@@ -1,0 +1,67 @@
+import React, { useEffect } from 'react';
+import { Avatar, Box, CircularProgress, Typography } from '@mui/material';
+import { useTheme } from '@mui/material/styles';
+import { useAppDispatch, useAppSelector } from '../../redux/hooks';
+import { fetchMovieDetails } from '../../redux/slices/movieDetailsSlice';
+
+interface MovieDetailsProps {
+    imdbID: string;
+}
+
+const MovieDetails: React.FC<MovieDetailsProps> = ({ imdbID }) => {
+    const theme = useTheme();
+    const dispatch = useAppDispatch();
+
+    // Get movie details state from Redux
+    const { movieDetails, loading, error } = useAppSelector(state => state.movieDetails);
+
+    // Fetch movie details when imdbID changes
+    useEffect(() => {
+        if (imdbID) {
+            dispatch(fetchMovieDetails(imdbID));
+        }
+    }, [imdbID, dispatch]);
+
+    // Handle click on the movie poster (e.g., to open a modal or show more info)
+    const handleClickOpen = () => {
+        console.log('Open movie details modal');
+    };
+
+    // If loading, show a spinner
+    if (loading) {
+        return <CircularProgress />;
+    }
+
+    // If there's an error, display it
+    if (error) {
+        return <Typography color="error">{error}</Typography>;
+    }
+
+    // If no movie details are found, return null or a message
+    if (!movieDetails) {
+        return <Typography>No movie details found</Typography>;
+    }
+
+    return (
+        <Box>
+            <Avatar
+                alt={movieDetails.Title}
+                src={movieDetails.Poster}
+                sx={{ width: 100, height: 150, mb: 1, cursor: 'pointer' }}
+                variant="rounded"
+                onClick={handleClickOpen} // Open modal when the image is clicked
+            />
+            <Typography variant="body1" sx={{ fontSize: theme.typography.body2.fontSize }}>
+                <strong>Plot:</strong> {movieDetails.Plot}
+            </Typography>
+            <Typography variant="body1" sx={{ fontSize: theme.typography.body2.fontSize }}>
+                <strong>Genre:</strong> {movieDetails.Genre}
+            </Typography>
+            <Typography variant="body1" sx={{ fontSize: theme.typography.body2.fontSize, mb: 4 }}>
+                <strong>Durasi:</strong> {movieDetails.Runtime}
+            </Typography>
+        </Box>
+    );
+};
+
+export default MovieDetails;

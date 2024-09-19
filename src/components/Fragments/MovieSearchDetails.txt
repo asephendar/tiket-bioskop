@@ -1,0 +1,169 @@
+import React, { useState, useEffect } from 'react';
+import {
+    Grid, TextField, Button, FormControl, InputLabel, MenuItem, Select,
+    Typography, Box, CircularProgress, Avatar
+} from '@mui/material';
+import { useTheme } from '@mui/material/styles';
+import { useAppDispatch, useAppSelector } from '../../redux/hooks';
+import { fetchMovies } from '../../redux/slices/moviesSlice';
+import { fetchMovieDetails } from '../../redux/slices/movieDetailsSlice';
+
+const MovieSearchDetails: React.FC = () => {
+    const theme = useTheme();
+    const dispatch = useAppDispatch();
+
+    // State untuk menangani query pencarian, film yang dipilih, dan jam tayang
+    const [searchQuery, setSearchQuery] = useState('');
+    const [selectedMovie, setSelectedMovie] = useState('');
+    const [selectedTimeSlot, setSelectedTimeSlot] = useState('');
+
+    const { movies, loading: moviesLoading, error: moviesError } = useAppSelector(state => state.movies);
+    const { movieDetails: selectedMovieDetails, loading: movieDetailsLoading, error: movieDetailsError } = useAppSelector(state => state.movieDetails);
+
+    // Jadwal tayang manual berdasarkan judul film
+    const movieTimeSlots: Record<string, string[]> = {
+        'Naruto': ['10:00', '13:30', '17:00', '20:30'],
+        'One Piece': ['11:00', '14:00', '18:00', '21:00'],
+        'Dragon Ball': ['09:30', '12:30', '16:00', '19:00', '22:00'],
+        'default': ['10:00', '13:00', '16:00', '19:00', '22:00'],
+    };
+    
+    // Fungsi untuk mendapatkan jam tayang berdasarkan judul film
+    const getTimeSlots = (movieTitle: string): string[] => {
+        return movieTimeSlots[movieTitle] || movieTimeSlots['default'];
+    };
+    
+
+    // Fungsi untuk menangani pencarian film
+    const handleSearch = () => {
+        if (searchQuery) {
+            dispatch(fetchMovies(searchQuery));
+        }
+    };
+
+    // Mengambil detail film setelah memilih salah satu
+    useEffect(() => {
+        if (selectedMovie) {
+            dispatch(fetchMovieDetails(selectedMovie));
+        }
+    }, [selectedMovie, dispatch]);
+
+    // Fungsi untuk menangani klik pada gambar film (misalnya untuk membuka modal)
+    const handleClickOpen = () => {
+        console.log('Open movie details modal');
+    };
+
+    return (
+        <>
+            <Grid container spacing={2} justifyContent="space-between" mb={2}>
+                <Grid item xs={12} sm={6} sx={{ mb: 1 }}>
+                    <TextField
+                        id="search-movie"
+                        label="Cari Film"
+                        variant="outlined"
+                        fullWidth
+                        size="small"
+                        value={searchQuery}
+                        onChange={(e) => setSearchQuery(e.target.value)}
+                        InputProps={{
+                            style: { fontSize: theme.typography.body2.fontSize }
+                        }}
+                        InputLabelProps={{
+                            style: { fontSize: theme.typography.body2.fontSize }
+                        }}
+                    />
+                </Grid>
+                <Grid item xs={12} sm={3}>
+                    <Button variant="contained" size="medium" fullWidth onClick={handleSearch}>
+                        Cari
+                    </Button>
+                </Grid>
+            </Grid>
+
+            {/* Menampilkan loading, error, atau hasil film */}
+            {moviesLoading ? (
+                <CircularProgress />
+            ) : moviesError ? (
+                <Typography>{moviesError}</Typography>
+            ) : (
+                <Grid container spacing={2} mb={3}>
+                    <Grid item xs={12}>
+                        <FormControl fullWidth>
+                            <InputLabel id="movie-select-label" sx={{ fontSize: theme.typography.body2.fontSize }} size="small">Pilih Film</InputLabel>
+                            <Select
+                                labelId="movie-select-label"
+                                id="movie-select"
+                                value={selectedMovie}
+                                onChange={(e) => setSelectedMovie(e.target.value as string)}
+                                label="Pilih Film"
+                                size="small"
+                                fullWidth
+                                sx={{ fontSize: theme.typography.body2.fontSize }}
+                            >
+                                {movies.map((movie) => (
+                                    <MenuItem key={movie.imdbID} value={movie.imdbID}>
+                                        {movie.Title} ({movie.Year})
+                                    </MenuItem>
+                                ))}
+                            </Select>
+                        </FormControl>
+                    </Grid>
+                </Grid>
+            )}
+
+            {/* Menampilkan detail film yang dipilih */}
+            {movieDetailsLoading ? (
+                <CircularProgress />
+            ) : selectedMovieDetails && (
+                <Box>
+                    <Avatar
+                        alt={selectedMovieDetails.Title}
+                        src={selectedMovieDetails.Poster}
+                        sx={{ width: 100, height: 150, mb: 1, cursor: 'pointer' }}
+                        variant="rounded"
+                        onClick={handleClickOpen} // Buka modal ketika gambar diklik
+                    />
+                    <Typography variant="body1" sx={{ fontSize: theme.typography.body2.fontSize }}>
+                        <strong>Plot:</strong> {selectedMovieDetails.Plot}
+                    </Typography>
+                    <Typography variant="body1" sx={{ fontSize: theme.typography.body2.fontSize }}>
+                        <strong>Genre:</strong> {selectedMovieDetails.Genre}
+                    </Typography>
+                    <Typography variant="body1" sx={{ fontSize: theme.typography.body2.fontSize, mb: 4 }}>
+                        <strong>Durasi:</strong> {selectedMovieDetails.Runtime}
+                    </Typography>
+
+                    {/* Pilih Jam Tayang */}
+                    <FormControl fullWidth>
+                        <InputLabel id="time-slot-label" sx={{ fontSize: theme.typography.body2.fontSize }} size="small">Pilih Jam Tayang</InputLabel>
+                        <Select
+                            labelId="time-slot-label"
+                            id="time-slot"
+                            value={selectedTimeSlot}
+                            onChange={(e) => setSelectedTimeSlot(e.target.value as string)}
+                            label="Pilih Jam Tayang"
+                            size="small"
+                            fullWidth
+                            sx={{ fontSize: theme.typography.body2.fontSize }}
+                        >
+                            {getTimeSlots(selectedMovieDetails.Title).map((time) => (
+                                <MenuItem key={time} value={time}>
+                                    {time}
+                                </MenuItem>
+                            ))}
+                        </Select>
+                    </FormControl>
+
+                    {/* Menampilkan jam tayang yang dipilih */}
+                    {selectedTimeSlot && (
+                        <Typography variant="body1" sx={{ fontSize: theme.typography.body2.fontSize, mt: 2 }}>
+                            <strong>Jam Tayang Terpilih:</strong> {selectedTimeSlot}
+                        </Typography>
+                    )}
+                </Box>
+            )}
+        </>
+    );
+};
+
+export default MovieSearchDetails;

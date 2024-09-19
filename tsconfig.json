@@ -1,0 +1,14 @@
+{
+  "extends": "@nxweb/builder/ts/react",
+  "compilerOptions": {
+    "baseUrl": "."
+  },
+  "exclude": [
+    "**/~*"
+  ],
+  "include": [
+    "types/**/*",
+    "src/**/*",
+    "test/**/*"
+  ]
+}

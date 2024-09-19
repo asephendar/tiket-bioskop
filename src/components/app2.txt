@@ -1,0 +1,202 @@
+import { useState, FC } from 'react';
+import { Grid, Paper, TextField, Button, FormControl, InputLabel, MenuItem, Select, Typography, Divider, Box, CircularProgress } from '@mui/material';
+import { useTheme } from '@mui/material/styles';
+import { useFetchMovies } from '../hooks/useFetchMovies'; // Import useFetchMovies
+import { useFetchMovieDetails } from '../hooks/useFetchMovieDetails'; // Import useFetchMovieDetails
+
+const App: FC = () => {
+    const theme = useTheme();
+
+    // State untuk menyimpan histori dan data input
+    const [ticketHistory, setTicketHistory] = useState<{ title: string, quantity: number, total: number }[]>([]);
+    const [ticketQuantity, setTicketQuantity] = useState<number | ''>('');
+    const [selectedMovie, setSelectedMovie] = useState<string>('');
+    const [htm, setHTM] = useState<number>(0);
+    const [searchQuery, setSearchQuery] = useState<string>('');
+
+    // Menggunakan custom hooks
+    const { movies, loading: moviesLoading, error: moviesError, fetchMovies } = useFetchMovies();
+    const { movieDetails, loading: movieDetailsLoading, error: movieDetailsError, fetchMovieDetails } = useFetchMovieDetails();
+
+    // Fungsi untuk menangani input tiket
+    const handleSave = () => {
+        if (ticketQuantity && selectedMovie && htm) {
+            const selectedFilm = movies.find(movie => movie.imdbID === selectedMovie);
+            const totalPrice = ticketQuantity * htm;
+
+            // Tambahkan data ke histori
+            setTicketHistory([...ticketHistory, { title: selectedFilm?.Title || '', quantity: ticketQuantity, total: totalPrice }]);
+
+            // Reset input form setelah simpan
+            setTicketQuantity('');
+            setSelectedMovie('');
+            setHTM(0);
+        }
+    };
+
+    // Pencarian film berdasarkan input
+    const handleSearch = () => {
+        if (searchQuery) {
+            fetchMovies(searchQuery);
+        }
+    };
+
+    return (
+        <Box p={2}>
+            <Grid container spacing={3}>
+                {/* Historical View */}
+                <Grid item xs={12} sm={7}>
+                    <Paper elevation={3} sx={{ p: 3 }}>
+                        <Typography variant="h6" sx={{ mb: 1, fontSize: theme.typography.body2.fontSize, fontWeight: 'bold' }}>
+                            29 Oktober 2023
+                        </Typography>
+                        <Divider sx={{ mb: 2 }} />
+
+                        {/* Map dari ticketHistory untuk menampilkan histori */}
+                        {ticketHistory.map((historyItem, index) => (
+                            <Grid container spacing={2} key={index}>
+                                <Grid item xs={12} sm={7}>
+                                    <Typography variant="body1" sx={{ fontSize: theme.typography.body2.fontSize }}>
+                                        Judul Film: {historyItem.title}
+                                    </Typography>
+                                </Grid>
+                                <Grid item xs={12} sm={2}>
+                                    <Typography variant="body1" sx={{ fontSize: theme.typography.body2.fontSize }}>
+                                        Jumlah: {historyItem.quantity}
+                                    </Typography>
+                                </Grid>
+                                <Grid item xs={12} sm={3}>
+                                    <Typography variant="body1" sx={{ fontSize: theme.typography.body2.fontSize }}>
+                                        Total: Rp. {historyItem.total.toLocaleString()}
+                                    </Typography>
+                                </Grid>
+                            </Grid>
+                        ))}
+
+                        <Divider sx={{ my: 2 }} />
+                        <Typography variant="h6" sx={{ mb: 1, fontSize: theme.typography.body2.fontSize, fontWeight: 'bold' }}>
+                            Ringkasan Harian:
+                        </Typography>
+                        <Typography variant="body1" sx={{ fontSize: theme.typography.body2.fontSize }}>
+                            Total Tiket Terjual: {ticketHistory.reduce((acc, item) => acc + item.quantity, 0)}
+                        </Typography>
+                        <Typography variant="body1" sx={{ fontSize: theme.typography.body2.fontSize }}>
+                            Total Pendapatan: Rp. {ticketHistory.reduce((acc, item) => acc + item.total, 0).toLocaleString()}
+                        </Typography>
+                    </Paper>
+                </Grid>
+
+                {/* Input View */}
+                <Grid item xs={12} sm={5}>
+                    <Paper elevation={3} sx={{ p: 3 }}>
+                        <Grid container spacing={2} justifyContent="space-between" mb={2}>
+                            <Grid item xs={12} sm={4} sx={{ mb: 1 }}>
+                                <TextField
+                                    id="ticket-quantity"
+                                    label="Jumlah Tiket"
+                                    variant="outlined"
+                                    fullWidth
+                                    size="small"
+                                    type="number"
+                                    value={ticketQuantity}
+                                    onChange={(e) => setTicketQuantity(Number(e.target.value))}
+                                    InputProps={{
+                                        style: { fontSize: theme.typography.body2.fontSize }
+                                    }}
+                                    InputLabelProps={{
+                                        style: { fontSize: theme.typography.body2.fontSize }
+                                    }}
+                                />
+                            </Grid>
+                        </Grid>
+                        <Grid container spacing={2} justifyContent="space-between" mb={2}>
+                            <Grid item xs={12} sm={6} sx={{ mb: 1 }}>
+                                <TextField
+                                    id="search-movie"
+                                    label="Cari Film"
+                                    variant="outlined"
+                                    fullWidth
+                                    size="small"
+                                    value={searchQuery}
+                                    onChange={(e) => setSearchQuery(e.target.value)}
+                                    InputProps={{
+                                        style: { fontSize: theme.typography.body2.fontSize }
+                                    }}
+                                    InputLabelProps={{
+                                        style: { fontSize: theme.typography.body2.fontSize }
+                                    }}
+                                />
+                            </Grid>
+                            <Grid item xs={12} sm={3}>
+                                <Button variant="contained" size="small" fullWidth onClick={handleSearch}>
+                                    Cari
+                                </Button>
+                            </Grid>
+                        </Grid>
+
+                        {/* Menampilkan loading, error, atau hasil film */}
+                        {moviesLoading ? <CircularProgress /> : moviesError ? <Typography>{moviesError}</Typography> : (
+                            <Grid container spacing={2} mb={2}>
+                                <Grid item xs={12} sx={{ mb: 1 }}>
+                                    <FormControl fullWidth>
+                                        <InputLabel id="movie-select-label" sx={{ fontSize: theme.typography.body2.fontSize }} size="small">Pilih Film</InputLabel>
+                                        <Select
+                                            labelId="movie-select-label"
+                                            id="movie-select"
+                                            value={selectedMovie}
+                                            onChange={(e) => setSelectedMovie(e.target.value as string)}
+                                            label="Pilih Film"
+                                            size="small"
+                                            fullWidth
+                                            sx={{ fontSize: theme.typography.body2.fontSize }}
+                                        >
+                                            {movies.map((movie) => (
+                                                <MenuItem key={movie.imdbID} value={movie.imdbID}>
+                                                    {movie.Title} ({movie.Year})
+                                                </MenuItem>
+                                            ))}
+                                        </Select>
+                                    </FormControl>
+                                </Grid>
+                            </Grid>
+                        )}
+
+                        <Grid container spacing={2} mb={2}>
+                            <Grid item xs={12} sm={4}>
+                                <TextField
+                                    id="htm-monday-thursday"
+                                    label="Harga Tiket"
+                                    variant="outlined"
+                                    fullWidth
+                                    size="small"
+                                    type="number"
+                                    value={htm}
+                                    onChange={(e) => setHTM(Number(e.target.value))}
+                                    InputProps={{
+                                        style: { fontSize: theme.typography.body2.fontSize }
+                                    }}
+                                    InputLabelProps={{
+                                        style: { fontSize: theme.typography.body2.fontSize }
+                                    }}
+                                />
+                            </Grid>
+                        </Grid>
+                        <Grid item xs={12} sm={3}>
+                            <Button
+                                variant="contained"
+                                size="small"
+                                sx={{ mt: 2, mb: 1, bgcolor: theme.palette.success.main }}
+                                fullWidth
+                                onClick={handleSave}
+                            >
+                                Simpan
+                            </Button>
+                        </Grid>
+                    </Paper>
+                </Grid>
+            </Grid>
+        </Box>
+    );
+};
+
+export { App };
